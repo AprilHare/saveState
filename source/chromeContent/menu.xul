@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<window title="State?" id="saveStateViewer" 
+    xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    onload="bindElements();">
+<script src="driver.js"></script>
+<commandset> <command id="checkboxCommand" oncommand="checkboxDriver();"/>
+    <command id="textboxCommand" oncommand="textboxDriver();"/>
+    <command id="buttonCommand" oncommand="buttonDriver();"/> </commandset>
+
+<hbox>
+    <label value="State Name:" control="desiredState"/>
+    <textbox id="desiredState" flex="4" type="search" command="textboxCommand"/>
+    <button id="confirmButton" flex="1"/>
+    <checkbox id="showAllBox" label="Show All?" checked="false" command="checkboxCommand"/>
+</hbox>
+
+<vbox>
+    <label value="Already Stored:"/>
+    <tree id="databaseContents" flex="1">
+        <treecols>
+            <treecol id="savedName" label="Saved States" primary="true" flex="1"/>
+        </treecols>
+        <treechildren/>
+    </tree>
+</vbox>
+</window>

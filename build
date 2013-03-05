@@ -1,0 +1,14 @@
+#! /usr/bin/env bash
+
+if [ -a buildFiles ]
+    then
+        rm -R buildFiles
+fi
+
+mkdir buildFiles
+cp -R source/* buildFiles
+cd buildFiles
+zip -qr9XD ../savestate.xpi *
+
+cd ..
+rm -R buildFiles
