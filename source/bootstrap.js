@@ -58,7 +58,7 @@ function InitiateDB(){
     //initiate DB fle if not already present
     var DBfile = FileUtils.getFile("ProfD", ["saveStateDB.sqlite"]);
     var DBconnection = Services.storage.openDatabase(DBfile);
-    DBconnection.executeSimpleSQL("CREATE TABLE IF NOT EXISTS StateData (StateName TEXT, WindowIndex INTEGER, WindowLocation INTEGER, TabContents TEXT);");
+    DBconnection.executeSimpleSQL("CREATE TABLE IF NOT EXISTS StateData (StateName TEXT, TabContents TEXT);");
 }
 
 //...............................................................................................................................................................

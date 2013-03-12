@@ -4,7 +4,16 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 boxStatus = false;
 operationType = window.location.href.slice(window.location.href.search("type=") + 5);
 
-function checkboxDriver(){
+function bindElements() {
+    mainTree = document.getElementById("databaseContents");
+    pageTextbox = document.getElementById("desiredState");
+    pageCheckbox = document.getElementById("showAllBox");
+    pageButton = document.getElementById("confirmButton");
+    pageButton.setAttribute("label", operationType);
+    mainTree.view = treeDriver;
+}
+
+function checkboxDriver() {
     boxStatus =! boxStatus;
     if (boxStatus == true){
         getEntry("", addToTable);
@@ -14,42 +23,44 @@ function checkboxDriver(){
         textboxDriver();
     }
 }
-function textboxDriver(event){
+function textboxDriver(event) {
     var text = pageTextbox.value;
     if (text != ""){
         getEntry(text, addToTable);
     }
 }
-function buttonDriver(){
+function buttonDriver() {
     Services.console.logStringMessage(operationType)
     if (operationType == "save"){
-        var currentWindows = getWindowState();
+        var currentlyOpen = getWindowState();
+        var newName = pageTextbox.value;
+        for ( var i = 0; i < currentlyOpen.length; i++) {
+            storeEntry({name: newName, page: currentlyOpen[i]});
+        }
     }
     else if (operationType == "open"){
-
+        getEntry(pageTextbox.value, function(results) {
+            var urlList = [];
+            for (var row = results.getNextRow(); row; row = results.getNextRow()){
+                urlList.push(row.getResultByName("TabContents"));
+            }
+            restoreState(urlList);
+        });
     }
-}
-
-function bindElements(){
-    mainTree = document.getElementById("databaseContents");
-    pageTextbox = document.getElementById("desiredState");
-    pageCheckbox = document.getElementById("showAllBox");
-    pageButton = document.getElementById("confirmButton");
-    pageButton.setAttribute("label", operationType);
-    mainTree.view = treeDriver;
+    Services.console.logStringMessage(treeDriver.rowCount);
 }
 
 //tree........................................................................................................................................
 
 //row elements for the table
-function tableEntry(contents){
-    this.contents = contents
+function tableEntry(contents) {
+    this.contents = contents;
+    this.children = [];
+    this.open = false;
 }
 tableEntry.prototype = {
-    children: [],
-    open: false,
-    addChildren: function(contentsList){
-        for (i = 0; i < contentsList.length; i++){
+    addChildren: function(contentsList) {
+        for (var i = 0; i < contentsList.length; i++){
             var current = new tableEntry(contentsList[i]);
             this.children.push(current);
         }
@@ -58,19 +69,28 @@ tableEntry.prototype = {
 
 //main Tree
 treeDriver = {
+    treeBox: null,
     rootTable:[],
-    get rowCount(){
-        var currentCount = 0;
-        function rowCountHelper(table, currentCount){
-            if (table.length == 0){
-                return;
-            }
-            for (var row=0; row<table.length; row++){
-                currentCount += 1;
-                currentCount += rowCountHelper(table[row].children, 0);
-            }
+    currentTree: [],
+    updateCurrentTree: function() {
+        for (var i =0; i <= this.rowCount; i++){
+            var rowObject = this.rowFinder(i);
+            this.currentTree.push(rowObject.contents);
         }
+    },
+    get rowCount(){
         return rowCountHelper(this.rootTable, 0);
+        function rowCountHelper(table) {
+            var count = 0;
+            if (table.length == 0){
+                return count;
+            }
+            for (var row = 0; row < table.length; row++){
+                count += 1;
+                count += rowCountHelper(table[row].children);
+            }
+            return count;
+        }
     },
     setTree: function(treeBox) { this.treeBox = treeBox; },
     getCellText: function(row, column) {
@@ -93,17 +113,17 @@ treeDriver = {
         theRow = rowFinder(row);
         theRow.open = !(theRow.open)
     },
-    rowFinder: function(row){
-        var currentNum = 0;
+    rowFinder: function(row) {
+        var currentNum = -1;
         function rowFindHelper(row, table) {
-            for (var i = 0; i<= table.length; i++){
-                var currentObj = rootTable[i];
-                currentNum += 1;
-                if ((currentObj.children.length != 0) && (currentObj.open == true)) {
-                    currentObj = rowFindHelper(row, currentObj, currentNum);
-                }
-                if (currentNum >= row){
+            for (var i = 0; i<= table.length; i++) {
+                var currentObj = table[i];
+                currentNum += 1
+                if (currentNum >= row) {
                     return currentObj;
+                }
+                if ((currentObj.children.length != 0) && (currentObj.open == true)) {
+                    rowFindHelper(row, currentObj.childrem);
                 }
             }
         }
@@ -111,41 +131,54 @@ treeDriver = {
     }
 }
 
-function addToTable(results){
+function addToTable(results) {
     var entries = {}
-    for (var row = results.getNextRow(); row; row = results.getNextRow()){
+    for (var row = results.getNextRow(); row; row = results.getNextRow()) {
         var currentLabel = row.getResultByName("StateName");
         var currentChild = row.getResultByName("TabContents");
         if (typeof entries[currentLabel] == "undefined"){ entries[currentLabel] = []; }
         entries[currentLabel].push(currentChild);
     }
-    for (entry in entries){
+
+    for (entry in entries) {
         var inProgress = new tableEntry(entry);
+        Services.console.logStringMessage(entries[entry]);
         inProgress.addChildren(entries[entry]);
-        rootTable.push(inProgress);
+        treeDriver.rootTable.push(inProgress);
     }
+    treeDriver.updateCurrentTree();
 }
 
 
 //Database Functions..................................................................................................................
 
-function storeEntry(param){
+function storeEntry(params) {
     var DBfile = FileUtils.getFile("ProfD", ["saveStateDB.sqlite"]);
     var DBconnection =Services.storage.openDatabase(DBfile);
-    var SQLstatement = DBconnection.createAsyncStatement();
+    var SQLstatement = DBconnection.createAsyncStatement("INSERT INTO StateData VALUES (:name, :page);");
+    ["name", "page"].forEach(function(parameter){
+        SQLstatement.params[parameter] = params[parameter];
+    });
+    SQLstatement.executeAsync({
+        handleResult: function(){},
+        handleError: function(aError){
+            Services.console.logStringMessage(aError.message);
+        },
+        handleCompletion: function(){}
+    });
 }
 
-function getEntry(lookup, callback){
+function getEntry(lookup, callback) {
     var DBfile = FileUtils.getFile("ProfD", ["saveStateDB.sqlite"]);
     var DBconnection =Services.storage.openDatabase(DBfile);
-    var SQLstatement = DBconnection.createAsyncStatement("SELECT (StateName TabContents) FROM StateData WHERE (StateName Like :Lookup);");
+    var SQLstatement = DBconnection.createAsyncStatement("SELECT StateName, TabContents FROM StateData WHERE (StateName LIKE :Lookup);");
     SQLstatement.params["Lookup"] = lookup+"%";
     SQLstatement.executeAsync({
         handleResult: function(aResultSet){
             callback(aResultSet);
         },
         handleError: function(aError){
-            Services.console.logStringMessage(aError);
+            Services.console.logStringMessage(aError.message);
         },
         handleCompletion: function(){}
     });
@@ -153,14 +186,23 @@ function getEntry(lookup, callback){
 
 //window functions......................................................................................................................
 
-function getWindowState(){
-    var enumerator = Services.ww.getWindowEnumerator();
-    for (current = enumerator.getNext(); enumerator.hasMoreElements(); enumerator.getNext()){
-        Services.console.logStringMessage(typeof current);
+function getWindowState() {
+    var enumerator = Services.wm.getEnumerator(null);
+    var tabList = [];
+    for ( var current = enumerator.getNext(); enumerator.hasMoreElements(); current = enumerator.getNext()) {
+        if (current.document.getElementById("content") !== null) {
+            var browsers = current.document.getElementById("content").browsers;
+            for (var i = 0; browsers[i]; i++) {
+                tabList.push(browsers[i].currentURI.spec);
+            }
+        }
     }
+    return tabList;
 }
 
-function restoreState(){
-
+function restoreState(urlList) {
+    for ( var i = 0; i < urlList; i++ ) {
+        window.document.getElementById("content").loadTabs(urlList, true, false);
+    }
 }
 
