@@ -15,13 +15,13 @@
     <checkbox id="showAllBox" label="Show All?" checked="false" command="checkboxCommand"/>
 </hbox>
 
-<vbox>
-    <label value="Already Stored:"/>
-    <tree id="databaseContents" flex="1">
-        <treecols>
-            <treecol id="savedName" label="Saved States" primary="true" flex="1"/>
-        </treecols>
-        <treechildren/>
-    </tree>
-</vbox>
+
+<label value="Already Stored:"/>
+<tree id="databaseContents" flex="1">
+    <treecols>
+        <treecol id="savedName" label="Saved States" primary="true" flex="1"/>
+    </treecols>
+    <treechildren/>
+</tree>
+
 </window>

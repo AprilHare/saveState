@@ -12,126 +12,132 @@ function bindElements() {
     pageButton.setAttribute("label", operationType);
     mainTree.view = treeDriver;
 }
-
+function textboxDriver(event) {
+    var text = pageTextbox.value;
+    if (text == ""){
+        defaultState();
+    }
+    else {
+        getEntry(text, updateRoot);
+    }
+}
 function checkboxDriver() {
     boxStatus =! boxStatus;
-    if (boxStatus == true){
-        getEntry("", addToTable);
+    defaultState();
+    textboxDriver();
+}
+function defaultState(){
+    if (boxStatus){
+        getEntry("", updateRoot);
     }
     else {
         treeDriver.rootTable = [];
-        textboxDriver();
-    }
-}
-function textboxDriver(event) {
-    var text = pageTextbox.value;
-    if (text != ""){
-        getEntry(text, addToTable);
+        updateCurrent();
     }
 }
 function buttonDriver() {
-    Services.console.logStringMessage(operationType)
-    if (operationType == "save"){
-        var currentlyOpen = getWindowState();
-        var newName = pageTextbox.value;
-        for ( var i = 0; i < currentlyOpen.length; i++) {
-            storeEntry({name: newName, page: currentlyOpen[i]});
-        }
+    Services.console.logStringMessage("hello");
+    for (var i = 0; i < treeDriver.currentTable.length; i++) {
+        Services.console.logStringMessage(treeDriver.currentTable[i].open);
     }
-    else if (operationType == "open"){
-        getEntry(pageTextbox.value, function(results) {
-            var urlList = [];
-            for (var row = results.getNextRow(); row; row = results.getNextRow()){
-                urlList.push(row.getResultByName("TabContents"));
-            }
-            restoreState(urlList);
-        });
-    }
-    Services.console.logStringMessage(treeDriver.rowCount);
 }
 
 //tree........................................................................................................................................
-
 //row elements for the table
-function tableEntry(contents) {
+function tableEntry(contents, parent) {
     this.contents = contents;
     this.children = [];
     this.open = false;
+    if (typeof parent != "undefined") {
+        this.parent = parent;
+    }
+    else {
+        this.parent = null;
+    }
 }
 tableEntry.prototype = {
     addChildren: function(contentsList) {
         for (var i = 0; i < contentsList.length; i++){
-            var current = new tableEntry(contentsList[i]);
+            var current = new tableEntry(contentsList[i], this);
             this.children.push(current);
         }
     }
 }
 
-//main Tree
 treeDriver = {
+    //
     treeBox: null,
-    rootTable:[],
-    currentTree: [],
-    updateCurrentTree: function() {
-        for (var i =0; i <= this.rowCount; i++){
-            var rowObject = this.rowFinder(i);
-            this.currentTree.push(rowObject.contents);
-        }
-    },
-    get rowCount(){
-        return rowCountHelper(this.rootTable, 0);
-        function rowCountHelper(table) {
-            var count = 0;
-            if (table.length == 0){
-                return count;
-            }
-            for (var row = 0; row < table.length; row++){
-                count += 1;
-                count += rowCountHelper(table[row].children);
-            }
-            return count;
-        }
-    },
+    selection: null,
     setTree: function(treeBox) { this.treeBox = treeBox; },
-    getCellText: function(row, column) {
-        theRow = rowFinder(row);
-        return theRow.contents;
+    isSeparator: function(row) { return false; },
+    isSorted: function() { return false; },
+    getImageSrc: function(row,col) { return null; },
+    getRowProperties: function(row,props) {},
+    getCellProperties: function(row,col,props) {},
+    getColumnProperties: function(colid,col,props) {},
+    isEditable: function(row, column) {return false;},
+    //
+    rootTable: [],
+    currentTable: [],
+    get rowCount() {
+        return this.currentTable.length;
+    },
+    getCellText: function(row, column) { 
+        return this.currentTable[row].contents;
     },
     isContainer: function(row) {
-        theRow = rowFinder(row);
-        return (theRow.children == []);
+        return (this.currentTable[row].children.length != 0);
     },
     isContainerEmpty: function(row) {
-        theRow = rowFinder(row);
-        return (theRow.children == []);
+        return (this.currentTable[row].children.length == 0);
     },
     isContainerOpen: function(row) {
-        theRow = rowFinder(row);
-        return theRow.open;
+        return this.currentTable[row].open;
     },
-    toggleOpenState: function(row) {
-        theRow = rowFinder(row);
-        theRow.open = !(theRow.open)
+    getLevel: function(row) {
+        var rowiQ = this.currentTable[row];
+        function tallyParents(row) {
+            var count = 0;
+            if (row.parent = null) {
+                return count
+            }
+            count += (tallyParents(row.parent) + 1);
+        }
     },
-    rowFinder: function(row) {
-        var currentNum = -1;
-        function rowFindHelper(row, table) {
-            for (var i = 0; i<= table.length; i++) {
-                var currentObj = table[i];
-                currentNum += 1
-                if (currentNum >= row) {
-                    return currentObj;
-                }
-                if ((currentObj.children.length != 0) && (currentObj.open == true)) {
-                    rowFindHelper(row, currentObj.childrem);
+    getParentIndex: function(row) {
+        if (this.currentTable[row].parent == null) {
+            return -1;
+        }
+        else {
+            return this.currentTable[row].parent;
+        }
+    },
+    hasNextSibling: function(row, afterIndex) {
+        var theParent = this.currentTable[row].parent;
+        var theRow = this.currentTable[row]
+        var nextSib = false
+        for (var i = 0; i < theParent.children.length; i++) {
+            if (theParent.children[i] === theRow) {
+                if (i < theParent.children.length -1){
+                    nextSib = true
                 }
             }
         }
-        return rowFindHelper(row, this.rootTable);   //returns the entry object corresponding to the row
+        return nextSib;
+    },
+    toggleOpenState: function(row) {
+        if (this.currentTable[row].children.length > 0 && this.currentTable[row].open == false) {
+            this.currentTable[row].open = true;
+        }
+        else {
+            this.currentTable[row].open = false;
+        }
+        updateCurrent();
     }
 }
 
-function addToTable(results) {
+function updateRoot(results) {
+    //unpackage the results
     var entries = {}
     for (var row = results.getNextRow(); row; row = results.getNextRow()) {
         var currentLabel = row.getResultByName("StateName");
@@ -139,16 +145,32 @@ function addToTable(results) {
         if (typeof entries[currentLabel] == "undefined"){ entries[currentLabel] = []; }
         entries[currentLabel].push(currentChild);
     }
-
+    //Remove any old results from the table
+    treeDriver.rootTable = [];
+    //Add the results to the table
     for (entry in entries) {
-        var inProgress = new tableEntry(entry);
-        Services.console.logStringMessage(entries[entry]);
+        var inProgress = new tableEntry(entry, null);
         inProgress.addChildren(entries[entry]);
         treeDriver.rootTable.push(inProgress);
     }
-    treeDriver.updateCurrentTree();
+    updateCurrent();
 }
 
+function updateCurrent() {
+    treeDriver.treeBox.rowCountChanged(0, -treeDriver.currentTable.length);
+    var treeTable = treeDriver.currentTable = [];
+    function pushChildren(table) {
+        table.forEach(function(entry) {
+            Services.console.logStringMessage(entry.open);
+            treeTable.push(entry);
+            if (entry.children.length != 0 && entry.open == true) {
+                pushChildren(entry.children);
+            }
+        });
+    }
+    pushChildren(treeDriver.rootTable);
+    treeDriver.treeBox.rowCountChanged(0, treeTable.length);
+}
 
 //Database Functions..................................................................................................................
 
@@ -172,7 +194,7 @@ function getEntry(lookup, callback) {
     var DBfile = FileUtils.getFile("ProfD", ["saveStateDB.sqlite"]);
     var DBconnection =Services.storage.openDatabase(DBfile);
     var SQLstatement = DBconnection.createAsyncStatement("SELECT StateName, TabContents FROM StateData WHERE (StateName LIKE :Lookup);");
-    SQLstatement.params["Lookup"] = lookup+"%";
+    SQLstatement.params["Lookup"] = "%"+lookup+"%";
     SQLstatement.executeAsync({
         handleResult: function(aResultSet){
             callback(aResultSet);
@@ -184,25 +206,4 @@ function getEntry(lookup, callback) {
     });
 }
 
-//window functions......................................................................................................................
-
-function getWindowState() {
-    var enumerator = Services.wm.getEnumerator(null);
-    var tabList = [];
-    for ( var current = enumerator.getNext(); enumerator.hasMoreElements(); current = enumerator.getNext()) {
-        if (current.document.getElementById("content") !== null) {
-            var browsers = current.document.getElementById("content").browsers;
-            for (var i = 0; browsers[i]; i++) {
-                tabList.push(browsers[i].currentURI.spec);
-            }
-        }
-    }
-    return tabList;
-}
-
-function restoreState(urlList) {
-    for ( var i = 0; i < urlList; i++ ) {
-        window.document.getElementById("content").loadTabs(urlList, true, false);
-    }
-}
-
+//Window Functions
