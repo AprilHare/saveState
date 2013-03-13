@@ -54,7 +54,7 @@ function buttonDriver() {
             restoreState(textChildren);
         }
         else {
-            //url name?
+            //url name
             restoreState([treeEntry.contents])
         }
     }
@@ -167,6 +167,7 @@ function updateRoot(results) {
     updateCurrent();
 }
 
+//driver for treeDriver.currentTable, the table which forms a layer between the tree of children and the displayed tree
 function updateCurrent() {
     treeDriver.treeBox.rowCountChanged(0, -treeDriver.currentTable.length);
     var treeTable = treeDriver.currentTable = [];
@@ -227,7 +228,8 @@ function unpackResults(results) {
     return entries
 }
 
-//Window Functions
+//Window Functions............................................................................................................................
+
 function getWindowState() {
     var enumerator = Services.wm.getEnumerator(null);
     var tabList = [];
