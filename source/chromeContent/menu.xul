@@ -19,7 +19,7 @@
 <label value="Already Stored:"/>
 <tree id="databaseContents" flex="1">
     <treecols>
-        <treecol id="savedName" label="Saved States" primary="true" flex="1"/>
+        <treecol id="savedName" label="Saved States" primary="true" seltype="single" flex="1"/>
     </treecols>
     <treechildren/>
 </tree>

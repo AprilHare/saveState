@@ -36,9 +36,27 @@ function defaultState(){
     }
 }
 function buttonDriver() {
-    Services.console.logStringMessage("hello");
-    for (var i = 0; i < treeDriver.currentTable.length; i++) {
-        Services.console.logStringMessage(treeDriver.currentTable[i].open);
+    if (operationType == "save") {
+        var currentTabs = getWindowState();
+        currentTabs.forEach( function(entry) {
+            storeEntry({name: pageTextbox.value, page: entry});
+        });
+    }
+    else if (operationType == "open") {
+        var selected = mainTree.currentIndex;
+        var treeEntry = treeDriver.currentTable[selected]
+        if (treeEntry.parent == null) {
+            //instance name
+            var textChildren = [];
+            treeEntry.children.forEach(function(entry) {
+                textChildren.push(entry.contents);
+            });
+            restoreState(textChildren);
+        }
+        else {
+            //url name?
+            restoreState([treeEntry.contents])
+        }
     }
 }
 
@@ -137,14 +155,7 @@ treeDriver = {
 }
 
 function updateRoot(results) {
-    //unpackage the results
-    var entries = {}
-    for (var row = results.getNextRow(); row; row = results.getNextRow()) {
-        var currentLabel = row.getResultByName("StateName");
-        var currentChild = row.getResultByName("TabContents");
-        if (typeof entries[currentLabel] == "undefined"){ entries[currentLabel] = []; }
-        entries[currentLabel].push(currentChild);
-    }
+    entries = unpackResults(results)
     //Remove any old results from the table
     treeDriver.rootTable = [];
     //Add the results to the table
@@ -161,7 +172,6 @@ function updateCurrent() {
     var treeTable = treeDriver.currentTable = [];
     function pushChildren(table) {
         table.forEach(function(entry) {
-            Services.console.logStringMessage(entry.open);
             treeTable.push(entry);
             if (entry.children.length != 0 && entry.open == true) {
                 pushChildren(entry.children);
@@ -206,4 +216,41 @@ function getEntry(lookup, callback) {
     });
 }
 
+function unpackResults(results) {
+    var entries = {};
+    for (var row = results.getNextRow(); row; row = results.getNextRow()) {
+        var currentLabel = row.getResultByName("StateName");
+        var currentChild = row.getResultByName("TabContents");
+        if (typeof entries[currentLabel] == "undefined"){ entries[currentLabel] = []; }
+        entries[currentLabel].push(currentChild);
+    }
+    return entries
+}
+
 //Window Functions
+function getWindowState() {
+    var enumerator = Services.wm.getEnumerator(null);
+    var tabList = [];
+    for ( var current = enumerator.getNext(); enumerator.hasMoreElements(); current = enumerator.getNext()) {
+        if (current.document.getElementById("content") !== null) {
+            var browsers = current.document.getElementById("content").browsers;
+            for (var i = 0; browsers[i]; i++) {
+                tabList.push(browsers[i].currentURI.spec);
+            }
+        }
+     }
+    return tabList;
+}
+
+function restoreState(urlList) {
+    //this method gets around "security" measures which prevent window.open from opening non-chrome urls
+    var mainWindow = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                   .getInterface(Components.interfaces.nsIWebNavigation)
+                   .QueryInterface(Components.interfaces.nsIDocShellTreeItem)
+                   .rootTreeItem
+                   .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                   .getInterface(Components.interfaces.nsIDOMWindow);
+    var tabbrowser = mainWindow.document.getElementById("content")
+    tabbrowser.loadTabs(urlList, true, false)
+}
+
