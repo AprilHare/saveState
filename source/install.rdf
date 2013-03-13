@@ -6,7 +6,7 @@
   <Description about="urn:mozilla:install-manifest">
     <em:id>saveState@savestate.ext</em:id>
     <em:name>Save States</em:name>
-    <em:description>Extension to Save Certain Browser States to Hotkeys</em:description>
+    <em:description>Extension for Saving Named Browser States</em:description>
     <em:version>0</em:version>
     <em:creator>Luke Rast</em:creator>
     <em:homepageURL>https://github.com/AprilHare/saveState</em:homepageURL>
