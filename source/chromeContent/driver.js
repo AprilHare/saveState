@@ -61,17 +61,21 @@ function buttonDriver() {
     }
 }
 function deleteDriver() {
-    var selected = mainTree.currentIndex;
-    var treeEntry = treeDriver.currentTable[selected];
-    if (treeEntry.parent == null) {
+    var treeEntry = treeDriver.currentTable[mainTree.currentIndex];
+    var EntryParent = treeEntry.parent
+    if (EntryParent == null) {
         //instance name
         removeEntry({state: treeEntry.contents});
+        var itemIndex = treeDriver.rootTable.indexOf(treeEntry);
+        treeDriver.rootTable.splice(itemIndex, 1);
     }
     else {
         //URLname
-        removeEntry({state: treeEntry.parent.contents, url: treeEntry.contents});
+        removeEntry({state: EntryParent.contents, url: treeEntry.contents});
+        var itemIndex = EntryParent.children.indexOf(treeEntry);
+        EntryParent.children.splice(itemIndex, 1);
     }
-    textboxDriver();
+    updateCurrent();
 }
 
 
