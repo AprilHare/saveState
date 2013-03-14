@@ -42,6 +42,7 @@ function buttonDriver() {
         currentTabs.forEach( function(entry) {
             storeEntry({name: pageTextbox.value, page: entry});
         });
+        textboxDriver();
     }
     else if (operationType == "open") {
         var selected = mainTree.currentIndex;
@@ -140,6 +141,7 @@ treeDriver = {
             }
             count += (tallyParents(row.parent) + 1);
         }
+        return tallyParents(rowiQ);
     },
     getParentIndex: function(row) {
         if (this.currentTable[row].parent == null) {
