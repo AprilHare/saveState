@@ -9,6 +9,7 @@ function bindElements() {
     pageTextbox = document.getElementById("desiredState");
     pageCheckbox = document.getElementById("showAllBox");
     pageButton = document.getElementById("confirmButton");
+    typeButton = document.getElementById("typeButton");
     pageButton.setAttribute("label", operationType);
     mainTree.view = treeDriver;
 }
@@ -59,6 +60,19 @@ function buttonDriver() {
         }
     }
 }
+function deleteDriver() {
+    var selected = mainTree.currentIndex;
+    var treeEntry = treeDriver.currentTable[selected];
+    if (treeEntry.parent == null) {
+        //instance name
+        removeEntry({state: treeEntry.contents});
+    }
+    else {
+        //URLname
+        removeEntry({state: treeEntry.parent.contents, url: treeEntry.contents});
+    }
+}
+
 
 //tree........................................................................................................................................
 //row elements for the table
@@ -207,14 +221,39 @@ function getEntry(lookup, callback) {
     var SQLstatement = DBconnection.createAsyncStatement("SELECT StateName, TabContents FROM StateData WHERE (StateName LIKE :Lookup);");
     SQLstatement.params["Lookup"] = "%"+lookup+"%";
     SQLstatement.executeAsync({
-        handleResult: function(aResultSet){
+        handleResult: function(aResultSet) {
             callback(aResultSet);
         },
-        handleError: function(aError){
+        handleError: function(aError) {
+            Services.console.logStringMessage(aError.message);
+        },
+        handleCompletion: function() {}
+    });
+}
+
+function removeEntry(params) {
+    var DBfile = FileUtils.getFile("ProfD", ["saveStateDB.sqlite"]);
+    var DBconnection =Services.storage.openDatabase(DBfile);
+    if (typeof params["url"] == "undefined") {
+        //just a state name is given
+        var SQLstatement = DBconnection.createAsyncStatement("DELETE FROM StateData WHERE (StateName = :state);");
+        SQLstatement.params["state"] = params["state"]
+    }
+    else {
+        var SQLstatement = DBconnection.createAsyncStatement();
+        SQLstatement.params["DELETE FROM StateData WHERE (StateName = :state, TabContents = :url);"]
+        ["state", "url"].forEach(function(entry){
+            SQLstatement.params[entry] = params[entry]
+        })
+    }
+    SQLstatement.executeAsync({
+        handleResult: function() {},
+        handleError: function() {
             Services.console.logStringMessage(aError.message);
         },
         handleCompletion: function(){}
-    });
+    })
+
 }
 
 function unpackResults(results) {

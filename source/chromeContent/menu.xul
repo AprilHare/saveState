@@ -6,7 +6,9 @@
 <script src="driver.js"></script>
 <commandset> <command id="checkboxCommand" oncommand="checkboxDriver();"/>
     <command id="textboxCommand" oncommand="textboxDriver();"/>
-    <command id="buttonCommand" oncommand="buttonDriver();"/> </commandset>
+    <command id="buttonCommand" oncommand="buttonDriver();"/> 
+    <command id="deleteCommand" oncommand="deleteDriver();"/> 
+    <command id="toggleType" oncommand="toggleDriver();"/></commandset>
 
 <hbox>
     <label value="State Name:" control="desiredState"/>
@@ -17,11 +19,17 @@
 
 
 <label value="Already Stored:"/>
-<tree id="databaseContents" flex="1">
+<tree id="databaseContents" flex="5000">
     <treecols>
         <treecol id="savedName" label="Saved States" primary="true" seltype="single" flex="1"/>
     </treecols>
     <treechildren/>
 </tree>
+
+<hbox>
+    <spacer flex="8"/>
+    <spacer flex="8"/>
+    <button id="deleteButton" label="delete entry" command="deleteCommand" flex="1"/>
+</hbox>
 
 </window>
