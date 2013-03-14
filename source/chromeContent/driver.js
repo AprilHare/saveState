@@ -71,6 +71,7 @@ function deleteDriver() {
         //URLname
         removeEntry({state: treeEntry.parent.contents, url: treeEntry.contents});
     }
+    textboxDriver();
 }
 
 
@@ -240,11 +241,11 @@ function removeEntry(params) {
         SQLstatement.params["state"] = params["state"]
     }
     else {
-        var SQLstatement = DBconnection.createAsyncStatement();
-        SQLstatement.params["DELETE FROM StateData WHERE (StateName = :state, TabContents = :url);"]
+        var SQLstatement = DBconnection.createAsyncStatement("DELETE FROM StateData WHERE (StateName = :state AND TabContents = :url);");
         ["state", "url"].forEach(function(entry){
-            SQLstatement.params[entry] = params[entry]
-        })
+            Services.console.logStringMessage(params[entry])
+            SQLstatement.params[entry] = params[entry];
+        });
     }
     SQLstatement.executeAsync({
         handleResult: function() {},
