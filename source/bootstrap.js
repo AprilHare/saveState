@@ -47,10 +47,21 @@ function windowObs(){
 
 function activateCallback(type, window){
     if (type == "save") {
-        window.open("chrome://saveState/content/menu.xul?type=save");
+        openInTab("chrome://saveState/content/menu.xul?type=save", window);
     }
     else if (type == "open") {
-        window.open("chrome://saveState/content/menu.xul?type=open");
+        openInTab("chrome://saveState/content/menu.xul?type=open", window);
+    }
+}
+
+function openInTab(url, window) {
+    if (window.document.getElementById("content") !== null) {
+        //there is a tabbrowser
+        window.document.getElementById("content").addTab(url);
+    }
+    else {
+        //no tabbrowser
+        window.open(url);
     }
 }
 

@@ -14,7 +14,7 @@
     <label value="State Name:" control="desiredState"/>
     <textbox id="desiredState" flex="4" type="search" command="textboxCommand"/>
     <button id="confirmButton" flex="1" command="buttonCommand"/>
-    <checkbox id="showAllBox" label="Show All?" checked="false" command="checkboxCommand"/>
+    <checkbox id="showAllBox" label="Show All?" checked="true" command="checkboxCommand"/>
 </hbox>
 
 

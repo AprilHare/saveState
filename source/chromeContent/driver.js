@@ -1,7 +1,7 @@
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
-boxStatus = false;
+boxStatus = true;
 operationType = window.location.href.slice(window.location.href.search("type=") + 5);
 
 function bindElements() {
@@ -11,9 +11,10 @@ function bindElements() {
     pageButton = document.getElementById("confirmButton");
     typeButton = document.getElementById("typeButton");
     pageButton.setAttribute("label", operationType);
-    mainTree.view = treeDriver;
+    mainTree.view = treeDriver;;
+    textboxDriver();
 }
-function textboxDriver(event) {
+function textboxDriver() {
     var text = pageTextbox.value;
     if (text == ""){
         defaultState();
@@ -136,7 +137,7 @@ treeDriver = {
         var rowiQ = this.currentTable[row];
         function tallyParents(row) {
             var count = 0;
-            if (row.parent = null) {
+            if (row == null) {
                 return count
             }
             count += (tallyParents(row.parent) + 1);
@@ -176,9 +177,9 @@ treeDriver = {
 }
 
 function updateRoot(results) {
-    entries = unpackResults(results)
     //Remove any old results from the table
     treeDriver.rootTable = [];
+    entries = unpackResults(results);
     //Add the results to the table
     for (entry in entries) {
         var inProgress = new tableEntry(entry, null);
@@ -277,8 +278,10 @@ function unpackResults(results) {
 //Window Functions............................................................................................................................
 
 function getWindowState() {
-    var enumerator = Services.wm.getEnumerator(null);
     var tabList = [];
+/* 
+//Saves tabs in all windows (as opposed to the current window)
+    var enumerator = Services.wm.getEnumerator(null);
     for ( var current = enumerator.getNext(); enumerator.hasMoreElements(); current = enumerator.getNext()) {
         if (current.document.getElementById("content") !== null) {
             var browsers = current.document.getElementById("content").browsers;
@@ -287,7 +290,22 @@ function getWindowState() {
             }
         }
      }
-    return tabList;
+*/
+//Saves tabs in the current window (as opposed to all)
+    var mainWindow = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+               .getInterface(Components.interfaces.nsIWebNavigation)
+               .QueryInterface(Components.interfaces.nsIDocShellTreeItem)
+               .rootTreeItem
+               .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+               .getInterface(Components.interfaces.nsIDOMWindow);
+    if (mainWindow.document.getElementById("content") !== null) {
+        var browsers = mainWindow.document.getElementById("content").browsers;
+        for (var i = 0; browsers[i]; i++) {
+            if (browsers[i].currentURI.spec != "chrome://savestate/content/menu.xul?type=save")
+            tabList.push(browsers[i].currentURI.spec);
+        }
+    }
+    return tabList
 }
 
 function restoreState(urlList) {
