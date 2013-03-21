@@ -40,8 +40,14 @@ function defaultState(){
 function buttonDriver() {
     if (operationType == "save") {
         var currentTabs = getWindowState();
+        if (mainTree.currentIndex == -1) { //use the textbox value
+            var desiredName = pageTextbox.value
+        }
+        else { //use the selected value
+            var desiredName = treeDriver.currentTable[mainTree.currentIndex].contents
+        }
         currentTabs.forEach( function(entry) {
-            storeEntry({name: pageTextbox.value, page: entry});
+            storeEntry({name: desiredName, page: entry});
         });
         textboxDriver();
     }
@@ -279,8 +285,8 @@ function unpackResults(results) {
 
 function getWindowState() {
     var tabList = [];
-/* 
 //Saves tabs in all windows (as opposed to the current window)
+/*
     var enumerator = Services.wm.getEnumerator(null);
     for ( var current = enumerator.getNext(); enumerator.hasMoreElements(); current = enumerator.getNext()) {
         if (current.document.getElementById("content") !== null) {
