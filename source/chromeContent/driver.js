@@ -11,7 +11,7 @@ function bindElements() {
     pageButton = document.getElementById("confirmButton");
     typeButton = document.getElementById("typeButton");
     pageButton.setAttribute("label", operationType);
-    mainTree.view = treeDriver;;
+    mainTree.view = treeDriver;
     textboxDriver();
 }
 function textboxDriver() {
@@ -52,39 +52,56 @@ function buttonDriver() {
         textboxDriver();
     }
     else if (operationType == "open") {
-        var selected = mainTree.currentIndex;
-        var treeEntry = treeDriver.currentTable[selected]
-        if (treeEntry.parent == null) {
-            //instance name
-            var textChildren = [];
-            treeEntry.children.forEach(function(entry) {
-                textChildren.push(entry.contents);
-            });
-            restoreState(textChildren);
-        }
-        else {
-            //url name
-            restoreState([treeEntry.contents])
-        }
+        iterateOverSelected(function (index) {
+            var treeEntry = treeDriver.currentTable[index]
+            if (treeEntry.parent == null) {
+                //instance name
+                var textChildren = [];
+                treeEntry.children.forEach(function(entry) {
+                    textChildren.push(entry.contents);
+                });
+                restoreState(textChildren);
+            }
+            else {
+                //url name
+                restoreState([treeEntry.contents])
+            }
+        });
     }
 }
 function deleteDriver() {
-    var treeEntry = treeDriver.currentTable[mainTree.currentIndex];
-    var EntryParent = treeEntry.parent
-    if (EntryParent == null) {
-        //instance name
-        removeEntry({state: treeEntry.contents});
-        var itemIndex = treeDriver.rootTable.indexOf(treeEntry);
-        treeDriver.rootTable.splice(itemIndex, 1);
-    }
-    else {
-        //URLname
-        removeEntry({state: EntryParent.contents, url: treeEntry.contents});
-        var itemIndex = EntryParent.children.indexOf(treeEntry);
-        EntryParent.children.splice(itemIndex, 1);
-    }
+    iterateOverSelected(function (index) {
+        var treeEntry = treeDriver.currentTable[index];
+        var EntryParent = treeEntry.parent
+        if (EntryParent == null) {
+            //instance name
+            removeEntry({state: treeEntry.contents});
+            var itemIndex = treeDriver.rootTable.indexOf(treeEntry);
+            treeDriver.rootTable.splice(itemIndex, 1);
+        }
+        else {
+            //URLname
+            removeEntry({state: EntryParent.contents, url: treeEntry.contents});
+            var itemIndex = EntryParent.children.indexOf(treeEntry);
+            EntryParent.children.splice(itemIndex, 1);
+        }
+    });
     updateCurrent();
 }
+
+function iterateOverSelected(callback) {
+    var numRanges = mainTree.view.selection.getRangeCount();
+    var startObj = new Object();
+    var endObj = new Object();
+
+    for (var i = 0; i < numRanges; i++) {
+        mainTree.view.selection.getRangeAt(i, startObj, endObj)
+        for (var j = startObj.value; j <= endObj.value; j++) {
+            callback(j)
+        }
+    }
+}
+
 
 
 //tree........................................................................................................................................
