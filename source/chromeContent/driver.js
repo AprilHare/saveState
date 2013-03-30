@@ -273,7 +273,6 @@ function removeEntry(params) {
     else {
         var SQLstatement = DBconnection.createAsyncStatement("DELETE FROM StateData WHERE (StateName = :state AND TabContents = :url);");
         ["state", "url"].forEach(function(entry){
-            Services.console.logStringMessage(params[entry])
             SQLstatement.params[entry] = params[entry];
         });
     }
