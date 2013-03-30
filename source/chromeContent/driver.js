@@ -16,6 +16,7 @@ function bindElements() {
 }
 function textboxDriver() {
     var text = pageTextbox.value;
+    treeDriver.rootTable = [];
     if (text == ""){
         defaultState();
     }
@@ -25,15 +26,16 @@ function textboxDriver() {
 }
 function checkboxDriver() {
     boxStatus =! boxStatus;
-    defaultState();
+    treeDriver.rootTable = [];
+    updateCurrent();
     textboxDriver();
 }
 function defaultState(){
+    treeDriver.rootTable = [];
     if (boxStatus){
         getEntry("", updateRoot);
     }
     else {
-        treeDriver.rootTable = [];
         updateCurrent();
     }
 }
@@ -200,8 +202,6 @@ treeDriver = {
 }
 
 function updateRoot(results) {
-    //Remove any old results from the table
-    treeDriver.rootTable = [];
     entries = unpackResults(results);
     //Add the results to the table
     for (entry in entries) {
@@ -209,6 +209,7 @@ function updateRoot(results) {
         inProgress.addChildren(entries[entry]);
         treeDriver.rootTable.push(inProgress);
     }
+    Services.console.logStringMessage(treeDriver.rootTable)
     updateCurrent();
 }
 
